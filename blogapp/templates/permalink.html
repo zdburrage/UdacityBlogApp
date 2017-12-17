@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+     <div class="error">
+        {{error}}
+     </div>
+  {{post.render() | safe}}
+  <br>
+  <br>
+  <br>
+   <div class = "edit-delete">
+    <a href="/blog/edit/{{post.key().id()}}">Edit</a>
+    <a href="/blog/delete/{{post.key().id()}}">Delete</a>
+    <a href="/blog/like/{{post.key().id()}}">Like/Unlike</a>
+  </div>
+  <br>
+  <br>
+  <div class = "likes">
+  	<h2>Liked By</h2>
+  	{% for l in post.likes %}
+  		{% if l.liked == true %}
+  			<p>{{l.owner.name}}</p>
+  		{% endif %}
+  	{% endfor %}
+  </div>
+  <div class ="comment-div">
+  <h2>Comments</h2>
+    {% for c in comments %}
+    <p class = "comment-border">{{c.content}}</p>
+    <p class="edit-delete">-{{c.author.name}}</p>
+    <a href="/blog/EditComment/{{c.key().id()}}">Edit</a>
+    <a href="/blog/DeleteComment/{{c.key().id()}}">Delete</a>
+    <br><br>
+  {% endfor %}
+  <br>
+  	<a class="add-comment" href="/blog/comment/{{post.key().id()}}">Add Comment</a>
+</div>
+{% endblock %}

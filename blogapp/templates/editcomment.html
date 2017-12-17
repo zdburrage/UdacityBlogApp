@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="post">
+  <div class="post-heading">
+    <div class="post-title">
+      <a href="/blog/{{post.key().id()}}">{{post.subject}}</a>
+    </div>
+
+    <div class="post-date">
+      {{post.created.strftime("%b %d, %Y")}}
+    </div>
+  </div>
+
+  <div class="post-content">
+    {{post._render_text | safe}}
+  </div>
+  <h2>Edit Comment</h2>
+  <form method = "post">
+  <textarea class="comment" name="content">
+    {{comment.content}}
+  </textarea>
+  <input type="hidden" value="{{post.key().id()}}" name="post_id">
+  <input type="submit">
+</form>
+</div>
+{% endblock %}

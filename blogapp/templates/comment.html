@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {{post.render() | safe}}
+  <h2>
+  	Add Comment to Post
+  </h2>
+ 	<form method="post">
+  		<textarea class="comment" name ="comment"></textarea>
+  		<br>
+  		<button type="Sumbit">Post Comment</button>
+	</form>
+{% endblock %}
