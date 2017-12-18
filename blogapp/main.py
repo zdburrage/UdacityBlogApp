@@ -367,7 +367,8 @@ class DeleteComment(BlogHandler):
                     self.redirect('/blog/' + str(post.key().id()))
                 else:
                     error = \
-                        'You cannot delete this comment because it is not yours!'
+                        'You cannot delete this comment because it is' + \
+                        'not yours!'
                     self.render('permalink.html', post=post, error=error,
                                 comments=post.comments)
             else:
@@ -393,7 +394,8 @@ class EditComment(BlogHandler):
                     self.render('editcomment.html', post=post,
                                 comment=comment)
                 else:
-                    error = 'You cannot edit this comment because it is not yours!'
+                    error = 'You cannot edit this comment because it is' + \
+                            'not yours!'
                     self.render('permalink.html', post=post, error=error,
                                 comments=post.comments)
             else:
