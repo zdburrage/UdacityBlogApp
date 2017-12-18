@@ -366,7 +366,7 @@ class EditComment(BlogHandler):
                 self.render('editcomment.html', post=post,
                             comment=comment)
             else:
-                error = \
+                error =
                     'You cannot edit this comment because it is not yours!'
                 self.render('permalink.html', post=post, error=error,
                             comments=post.comments)
