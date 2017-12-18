@@ -374,20 +374,20 @@ class EditComment(BlogHandler):
             self.redirect('/login')
 
     def post(self, comment_id):
-		if self.user:	
-			key = db.Key.from_path('Comment', int(comment_id),
-									parent=blog_key())
-			comment = db.get(key)
-			if self.user.key().id() == comment.author.key().id():
-				comment.content = self.request.get('content')
-				comment.put()
-				post_id = self.request.get('post_id')
-				self.redirect('/blog/' + post_id)
-			else:
-				error = "This comment is not yours!"
-				self.redirect('permalink.html', post = comment.post, comments = comment.post.comments, error = error)
+	if self.user:	
+		key = db.Key.from_path('Comment', int(comment_id),
+					parent=blog_key())
+		comment = db.get(key)
+		if self.user.key().id() == comment.author.key().id():
+			comment.content = self.request.get('content')
+			comment.put()
+			post_id = self.request.get('post_id')
+			self.redirect('/blog/' + post_id)
 		else:
-			self.redirect('/login')
+			error = "This comment is not yours!"
+			self.redirect('permalink.html', post = comment.post, comments = comment.post.comments, error = error)
+	else:
+		self.redirect('/login')
 
 
 # Unit 2 HW's
