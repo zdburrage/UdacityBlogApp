@@ -21,7 +21,11 @@
       </label>
 
       <div class="error">{{error}}</div>
-
+      <div>
+      <form class = "add-new" method = "get" action = "/blog/{{post.key().id()}}">
+        <input type="submit" value ="Cancel">
+      </form>
       <input type="submit">
+    </div>
     </form>
 {% endblock %}

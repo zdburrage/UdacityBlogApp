@@ -129,7 +129,7 @@ class User(db.Model):
         name,
         pw,
         email=None,
-        ):
+    ):
         pw_hash = make_pw_hash(name, pw)
         return User(parent=users_key(), name=name, pw_hash=pw_hash,
                     email=email)
@@ -183,12 +183,15 @@ class NewPost(BlogHandler):
     def get(self):
         if self.user:
             self.render('newpost.html')
+            return
         else:
             self.redirect('/login')
+            return
 
     def post(self):
         if not self.user:
-            self.redirect('/blog')
+            self.redirect('/login')
+            return
         owner = self.user
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -208,34 +211,40 @@ class EditPostPage(BlogHandler):
 
     def get(self, post_id):
         if self.user:
-            key = db.Key.from_path('Post', int(post_id),
-                                   parent=blog_key())
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
-            userkey = db.Key.from_path('User', self.user.name)
-            ownerkey = db.Key.from_path('User', post.owner.name)
-            if self.user.key().id() == post.owner.key().id():
-                self.render('editpost.html', post=post)
+            if post is not None:
+                userkey = db.Key.from_path('User', self.user.name)
+                ownerkey = db.Key.from_path('User', post.owner.name)
+                if self.user.key().id() == post.owner.key().id():
+                    self.render('editpost.html', post=post)
+                else:
+                    error = 'You cannot edit a post that is not yours!'
+                    self.render('permalink.html', post=post,
+                                comments=post.comments, error=error)
             else:
-                error = 'You cannot edit a post that is not yours!'
-                self.render('permalink.html', post=post,
-                            comments=post.comments, error=error)
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
     def post(self, post_id):
-    	if self.user:
-	        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-	        post = db.get(key)
-	        post.content = self.request.get('content')
-	        post.subject = self.request.get('subject')
-	        if self.user.key().id() == post.owner.key().id():
-	        	post.put()
-        		self.redirect('/blog/' + post_id)
-        	else:
-        		error = "This is not your post!"
-        		self.render('permalink.html', error = error, post = post, comments = post.comments)
+        if self.user:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if post is not None:
+                post.content = self.request.get('content')
+                post.subject = self.request.get('subject')
+                if self.user.key().id() == post.owner.key().id():
+                    post.put()
+                    self.redirect('/blog/' + post_id)
+                else:
+                    error = "This is not your post!"
+                    self.render('permalink.html', error=error,
+                                post=post, comments=post.comments)
+            else:
+                self.redirect('/blog')
         else:
-        	self.redirect('/login')
+            self.redirect('/login')
 
 
 class PostPage(BlogHandler):
@@ -257,17 +266,21 @@ class DeletePostPage(BlogHandler):
             key = db.Key.from_path('Post', int(post_id),
                                    parent=blog_key())
             post = db.get(key)
-            userkey = db.Key.from_path('User', self.user.name)
-            ownerkey = db.Key.from_path('User', post.owner.name)
-            if self.user.key().id() == post.owner.key().id():
-                post.delete()
-            else:
-                error = \
-                    'You cannot delete this post because it is not yours!'
-                self.render('permalink.html', post=post, error=error,
-                            comments=post.comments)
+            if post is not None:
+                userkey = db.Key.from_path('User', self.user.name)
+                ownerkey = db.Key.from_path('User', post.owner.name)
+                if self.user.key().id() == post.owner.key().id():
+                    post.delete()
+                else:
+                    error = \
+                        'You cannot delete this post because it is not yours!'
+                    self.render('permalink.html', post=post, error=error,
+                                comments=post.comments)
+                    return
+                self.redirect('/blog')
                 return
-            self.redirect('/blog')
+            else:
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
@@ -279,24 +292,27 @@ class LikePost(BlogHandler):
             key = db.Key.from_path('Post', int(post_id),
                                    parent=blog_key())
             post = db.get(key)
-            owner = self.user
-            if self.user.key().id() != post.owner.key().id():
-                postlikes = post.likes
-                for p in postlikes:
-                    if p.owner.name == self.user.name:
-                        p.liked = not p.liked
-                        p.put()
-                        self.redirect('/blog/' + post_id)
-                        return
-                like = Like(parent=blog_key(), post=post,
-                            owner=self.user, liked=True)
-                like.put()
-                self.redirect('/blog/' + post_id)
-                return
+            if post is not None:
+                owner = self.user
+                if self.user.key().id() != post.owner.key().id():
+                    postlikes = post.likes
+                    for p in postlikes:
+                        if p.owner.name == self.user.name:
+                            p.liked = not p.liked
+                            p.put()
+                            self.redirect('/blog/' + post_id)
+                            return
+                    like = Like(parent=blog_key(), post=post,
+                                owner=self.user, liked=True)
+                    like.put()
+                    self.redirect('/blog/' + post_id)
+                    return
+                else:
+                    error = "You can't like your own post!"
+                    self.render('permalink.html', post=post,
+                                comments=post.comments, error=error)
             else:
-                error = "You can't like your own post!"
-                self.render('permalink.html', post=post,
-                            comments=post.comments, error=error)
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
@@ -310,22 +326,29 @@ class AddComment(BlogHandler):
             key = db.Key.from_path('Post', int(post_id),
                                    parent=blog_key())
             post = db.get(key)
-            self.render('comment.html', post=post)
+            if post is not None:
+                self.render('comment.html', post=post)
+            else:
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
     def post(self, post_id):
-    	if self.user:
-	        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-	        post = db.get(key)
-	        content = self.request.get('comment')
-	        author = self.user
-	        c = Comment(parent=blog_key(), content=content, author=author,
-	                    post=post)
-        	c.put()
-        	self.redirect('/blog/' + post_id)
+        if self.user:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if post is not None:
+                content = self.request.get('comment')
+                author = self.user
+                c = Comment(parent=blog_key(), content=content, author=author,
+                            post=post)
+                c.put()
+                self.redirect('/blog/' + post_id)
+                return
+            else:
+                self.redirect('/blog')
         else:
-        	self.redirect('/login')
+            self.redirect('/login')
 
 
 class DeleteComment(BlogHandler):
@@ -335,17 +358,20 @@ class DeleteComment(BlogHandler):
             key = db.Key.from_path('Comment', int(comment_id),
                                    parent=blog_key())
             comment = db.get(key)
-            userkey = db.Key.from_path('User', self.user.name)
-            ownerkey = db.Key.from_path('User', comment.author.name)
-            post = comment.post
-            if self.user.key().id() == comment.author.key().id():
-                comment.delete()
-                self.redirect('/blog/' + str(post.key().id()))
+            if comment is not None:
+                userkey = db.Key.from_path('User', self.user.name)
+                ownerkey = db.Key.from_path('User', comment.author.name)
+                post = comment.post
+                if self.user.key().id() == comment.author.key().id():
+                    comment.delete()
+                    self.redirect('/blog/' + str(post.key().id()))
+                else:
+                    error = \
+                        'You cannot delete this comment because it is not yours!'
+                    self.render('permalink.html', post=post, error=error,
+                                comments=post.comments)
             else:
-                error = \
-                    'You cannot delete this comment because it is not yours!'
-                self.render('permalink.html', post=post, error=error,
-                            comments=post.comments)
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
@@ -357,37 +383,44 @@ class EditComment(BlogHandler):
             key = db.Key.from_path('Comment', int(comment_id),
                                    parent=blog_key())
             comment = db.get(key)
-            userkey = db.Key.from_path('User', self.user.name)
-            ownerkey = db.Key.from_path('User', comment.author.name)
-            post = comment.post
-            print self.user.key().id()
-            print comment.author.key().id()
-            if self.user.key().id() == comment.author.key().id():
-                self.render('editcomment.html', post=post,
-                            comment=comment)
+            if comment is not None:
+                userkey = db.Key.from_path('User', self.user.name)
+                ownerkey = db.Key.from_path('User', comment.author.name)
+                post = comment.post
+                print self.user.key().id()
+                print comment.author.key().id()
+                if self.user.key().id() == comment.author.key().id():
+                    self.render('editcomment.html', post=post,
+                                comment=comment)
+                else:
+                    error = 'You cannot edit this comment because it is not yours!'
+                    self.render('permalink.html', post=post, error=error,
+                                comments=post.comments)
             else:
-                error =
-                    'You cannot edit this comment because it is not yours!'
-                self.render('permalink.html', post=post, error=error,
-                            comments=post.comments)
+                self.redirect('/blog')
         else:
             self.redirect('/login')
 
     def post(self, comment_id):
-	if self.user:	
-		key = db.Key.from_path('Comment', int(comment_id),
-					parent=blog_key())
-		comment = db.get(key)
-		if self.user.key().id() == comment.author.key().id():
-			comment.content = self.request.get('content')
-			comment.put()
-			post_id = self.request.get('post_id')
-			self.redirect('/blog/' + post_id)
-		else:
-			error = "This comment is not yours!"
-			self.redirect('permalink.html', post = comment.post, comments = comment.post.comments, error = error)
-	else:
-		self.redirect('/login')
+        if self.user:
+            key = db.Key.from_path('Comment', int(comment_id),
+                                   parent=blog_key())
+            comment = db.get(key)
+            if comment is not None:
+                if self.user.key().id() == comment.author.key().id():
+                    comment.content = self.request.get('content')
+                    comment.put()
+                    post_id = self.request.get('post_id')
+                    self.redirect('/blog/' + post_id)
+                else:
+                    error = "This comment is not yours!"
+                    self.redirect('permalink.html', post=comment.post,
+                                  comments=comment.post.comments, error=error)
+                    return
+            else:
+                self.redirect('/blog')
+        else:
+            self.redirect('/login')
 
 
 # Unit 2 HW's
@@ -551,4 +584,4 @@ app = webapp2.WSGIApplication([
     ('/blog/comment/([0-9]+)', AddComment),
     ('/blog/DeleteComment/([0-9]+)', DeleteComment),
     ('/blog/EditComment/([0-9]+)', EditComment),
-    ], debug=True)
+], debug=True)
