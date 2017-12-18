@@ -223,12 +223,19 @@ class EditPostPage(BlogHandler):
             self.redirect('/login')
 
     def post(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-        post.content = self.request.get('content')
-        post.subject = self.request.get('subject')
-        post.put()
-        self.redirect('/blog/' + post_id)
+    	if self.user:
+	        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+	        post = db.get(key)
+	        post.content = self.request.get('content')
+	        post.subject = self.request.get('subject')
+	        if self.user.key().id() == post.owner.key().id():
+	        	post.put()
+        		self.redirect('/blog/' + post_id)
+        	else:
+        		error = "This is not your post!"
+        		self.render('permalink.html', error = error, post = post, comments = post.comments)
+        else:
+        	self.redirect('/login')
 
 
 class PostPage(BlogHandler):
@@ -237,9 +244,6 @@ class PostPage(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
         comments = post.comments
-        print post.likes
-
-        print comments
         if not post:
             self.error(404)
             return
@@ -311,14 +315,17 @@ class AddComment(BlogHandler):
             self.redirect('/login')
 
     def post(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-        content = self.request.get('comment')
-        author = self.user
-        c = Comment(parent=blog_key(), content=content, author=author,
-                    post=post)
-        c.put()
-        self.redirect('/blog/' + post_id)
+    	if self.user:
+	        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+	        post = db.get(key)
+	        content = self.request.get('comment')
+	        author = self.user
+	        c = Comment(parent=blog_key(), content=content, author=author,
+	                    post=post)
+        	c.put()
+        	self.redirect('/blog/' + post_id)
+        else:
+        	self.redirect('/login')
 
 
 class DeleteComment(BlogHandler):
@@ -367,13 +374,20 @@ class EditComment(BlogHandler):
             self.redirect('/login')
 
     def post(self, comment_id):
-        key = db.Key.from_path('Comment', int(comment_id),
-                               parent=blog_key())
-        comment = db.get(key)
-        comment.content = self.request.get('content')
-        comment.put()
-        post_id = self.request.get('post_id')
-        self.redirect('/blog/' + post_id)
+		if self.user:	
+			key = db.Key.from_path('Comment', int(comment_id),
+									parent=blog_key())
+			comment = db.get(key)
+			if self.user.key().id() == comment.author.key().id():
+				comment.content = self.request.get('content')
+				comment.put()
+				post_id = self.request.get('post_id')
+				self.redirect('/blog/' + post_id)
+			else:
+				error = "This comment is not yours!"
+				self.redirect('permalink.html', post = comment.post, comments = comment.post.comments, error = error)
+		else:
+			self.redirect('/login')
 
 
 # Unit 2 HW's
